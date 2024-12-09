@@ -1,4 +1,4 @@
-name: Dockerized .NET Build with Linting Annotations
+name: Dockerized .NET Build with Categorized Annotations
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  build-and-lint:
+  categorized-annotations:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,36 +21,49 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y dotnet-sdk-7.0
 
+      ### BUILD ANNOTATIONS ###
       - name: Docker Build with Logs Capture
         id: build
         run: |
-          # Build the Docker image and log output to build.log
           docker build --progress=plain -t sample-dotnet-app . > build.log 2>&1 || true
 
-      - name: Parse Docker Build Logs for Annotations
+      - name: Parse Build Logs for Annotations
         run: |
-          # Check for warnings in the logs and create annotations
-          grep "warning" build.log | awk '{print "::warning file=Program.cs,line=10,col=5::" $0}' || true
+          # Build warnings
+          grep "warning" build.log | awk '{print "::warning title=Build::" $0}' || true
+          # Build errors
+          grep "error" build.log | awk '{print "::error title=Build::" $0}' || true
 
-          # Check for errors in the logs and create annotations
-          grep "error" build.log | awk '{print "::error file=Program.cs,line=20,col=5::" $0}' || true
-
+      ### LINT ANNOTATIONS ###
       - name: Run Linter and Capture Logs
         id: lint
         run: |
-          # Run .NET format or StyleCop linting checks and save to lint.log
           dotnet format --check --verbosity detailed > lint.log 2>&1 || true
 
       - name: Parse Lint Logs for Annotations
         run: |
-          # Create annotations for linting warnings and errors
-          grep "warning" lint.log | awk '{print "::warning file=Program.cs,line=10,col=5::" $0}' || true
-          grep "error" lint.log | awk '{print "::error file=Program.cs,line=20,col=5::" $0}' || true
+          # Lint warnings
+          grep "warning" lint.log | awk '{print "::warning title=Lint::" $0}' || true
+          # Lint errors
+          grep "error" lint.log | awk '{print "::error title=Lint::" $0}' || true
+
+      ### TEST ANNOTATIONS ###
+      - name: Run Tests and Save Results
+        id: test
+        run: |
+          mkdir -p test-results
+          dotnet test --logger:"junit;LogFilePath=test-results/test-results.xml" || true
+
+      - name: Annotate Test Failures
+        uses: scacap/action-surefire-report@v1
+        with:
+          paths: test-results/test-results.xml
+          title: Test
 
       - name: Verify Workflow Success
         run: |
-          # Fail the workflow if lint or build contains critical errors
-          if grep "error" lint.log || grep "error" build.log; then
-            echo "Errors detected, please resolve them before merging."
+          # Fail workflow if errors exist in any stage
+          if grep "error" lint.log || grep "error" build.log || grep "Failed" test-results/test-results.xml; then
+            echo "Errors detected. Please resolve them."
             exit 1
           fi
