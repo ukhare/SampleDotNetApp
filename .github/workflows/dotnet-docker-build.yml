@@ -1,4 +1,4 @@
-name: Dockerized .NET Build with Annotations
+name: Dockerized .NET Build with Linting Annotations
 
 on:
   push:
@@ -9,12 +9,17 @@ on:
       - main
 
 jobs:
-  build:
+  build-and-lint:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Install .NET SDK
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dotnet-sdk-7.0
 
       - name: Docker Build with Logs Capture
         id: build
@@ -22,7 +27,7 @@ jobs:
           # Build the Docker image and log output to build.log
           docker build --progress=plain -t sample-dotnet-app . > build.log 2>&1 || true
 
-      - name: Parse Logs for Annotations
+      - name: Parse Docker Build Logs for Annotations
         run: |
           # Check for warnings in the logs and create annotations
           grep "warning" build.log | awk '{print "::warning file=Program.cs,line=10,col=5::" $0}' || true
@@ -30,10 +35,22 @@ jobs:
           # Check for errors in the logs and create annotations
           grep "error" build.log | awk '{print "::error file=Program.cs,line=20,col=5::" $0}' || true
 
-      - name: Verify Build Success
+      - name: Run Linter and Capture Logs
+        id: lint
         run: |
-          # Ensure the build log does not contain critical errors
-          if grep "error" build.log; then
-            echo "Build contains errors, check annotations above for details."
+          # Run .NET format or StyleCop linting checks and save to lint.log
+          dotnet format --check --verbosity detailed > lint.log 2>&1 || true
+
+      - name: Parse Lint Logs for Annotations
+        run: |
+          # Create annotations for linting warnings and errors
+          grep "warning" lint.log | awk '{print "::warning file=Program.cs,line=10,col=5::" $0}' || true
+          grep "error" lint.log | awk '{print "::error file=Program.cs,line=20,col=5::" $0}' || true
+
+      - name: Verify Workflow Success
+        run: |
+          # Fail the workflow if lint or build contains critical errors
+          if grep "error" lint.log || grep "error" build.log; then
+            echo "Errors detected, please resolve them before merging."
             exit 1
           fi
