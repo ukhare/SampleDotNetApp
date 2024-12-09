@@ -1,0 +1,39 @@
+name: Dockerized .NET Build with Annotations
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Docker Build with Logs Capture
+        id: build
+        run: |
+          # Build the Docker image and log output to build.log
+          docker build --progress=plain -t sample-dotnet-app . > build.log 2>&1 || true
+
+      - name: Parse Logs for Annotations
+        run: |
+          # Check for warnings in the logs and create annotations
+          grep "warning" build.log | awk '{print "::warning file=Program.cs,line=10,col=5::" $0}' || true
+
+          # Check for errors in the logs and create annotations
+          grep "error" build.log | awk '{print "::error file=Program.cs,line=20,col=5::" $0}' || true
+
+      - name: Verify Build Success
+        run: |
+          # Ensure the build log does not contain critical errors
+          if grep "error" build.log; then
+            echo "Build contains errors, check annotations above for details."
+            exit 1
+          fi
