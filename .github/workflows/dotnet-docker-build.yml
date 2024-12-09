@@ -26,6 +26,7 @@ jobs:
         id: build
         run: |
           docker build --progress=plain -t sample-dotnet-app . > build.log 2>&1 || true
+        continue-on-error: true
 
       - name: Parse Build Logs for Annotations
         run: |
@@ -37,6 +38,7 @@ jobs:
       ### LINT ANNOTATIONS ###
       - name: Run Linter and Capture Logs
         id: lint
+        if: always()
         run: |
           dotnet format --check --verbosity detailed > lint.log 2>&1 || true
 
@@ -50,6 +52,7 @@ jobs:
       ### TEST ANNOTATIONS ###
       - name: Run Tests and Save Results
         id: test
+        if: always()
         run: |
           mkdir -p test-results
           dotnet test --logger:"junit;LogFilePath=test-results/test-results.xml" || true
