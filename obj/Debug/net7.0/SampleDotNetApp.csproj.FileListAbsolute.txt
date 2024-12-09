@@ -1,0 +1,4 @@
+/mnt/d/Learn/dotnet/SampleDotNetApp/obj/Debug/net7.0/SampleDotNetApp.GeneratedMSBuildEditorConfig.editorconfig
+/mnt/d/Learn/dotnet/SampleDotNetApp/obj/Debug/net7.0/SampleDotNetApp.AssemblyInfoInputs.cache
+/mnt/d/Learn/dotnet/SampleDotNetApp/obj/Debug/net7.0/SampleDotNetApp.AssemblyInfo.cs
+/mnt/d/Learn/dotnet/SampleDotNetApp/obj/Debug/net7.0/SampleDotNetApp.csproj.CoreCompileInputs.cache
