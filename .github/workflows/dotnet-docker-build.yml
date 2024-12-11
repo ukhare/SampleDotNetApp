@@ -39,12 +39,12 @@ jobs:
               file=$(echo "$line" | awk -F':' '{print $1}')
               line_num=$(echo "$line" | awk -F':' '{print $2}')
               message=$(echo "$line" | cut -d':' -f4-)
-              echo "::warning title=build_status,file=$file,line=$line_num::$message"
+              echo "::warning file=$file,line=$line_num,title=Build Status::$message"
             elif echo "$line" | grep -q "error"; then
               file=$(echo "$line" | awk -F':' '{print $1}')
               line_num=$(echo "$line" | awk -F':' '{print $2}')
               message=$(echo "$line" | cut -d':' -f4-)
-              echo "::error title=build_status,file=$file,line=$line_num::$message"
+              echo "::error file=$file,line=$line_num,title=Build Status::$message"
             fi
           done < publish.log || true
 
@@ -59,9 +59,9 @@ jobs:
         run: |
           while IFS= read -r line; do
             if echo "$line" | grep -q "warning"; then
-              echo "::warning title=lint::$line"
+              echo "::warning title=Lint::$line"
             elif echo "$line" | grep -q "error"; then
-              echo "::error title=lint::$line"
+              echo "::error title=Lint::$line"
             fi
           done < lint.log || true
 
@@ -76,7 +76,7 @@ jobs:
         uses: scacap/action-surefire-report@v1
         with:
           paths: test-results/test-results.xml
-          title: Test
+          title: Tests
 
       ### VERIFY WORKFLOW SUCCESS ###
       - name: Verify Workflow Success
