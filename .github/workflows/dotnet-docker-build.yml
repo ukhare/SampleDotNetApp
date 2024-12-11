@@ -31,7 +31,7 @@ jobs:
           dotnet publish -c Release -o ./publish_output > publish.log 2>&1 || true
         continue-on-error: true
 
-      - name: Parse Publish Logs for Annotations
+      - name: Publish Status
         id: publish_status
         run: |
           while IFS= read -r line; do
@@ -54,7 +54,7 @@ jobs:
         run: |
           dotnet format --check --verbosity detailed > lint.log 2>&1 || true
 
-      - name: Parse Lint Logs for Annotations
+      - name: Lint Status
         id: lint_status
         run: |
           while IFS= read -r line; do
@@ -72,7 +72,7 @@ jobs:
           mkdir -p test-results
           dotnet test --logger:"junit;LogFilePath=test-results/test-results.xml" || true
 
-      - name: Annotate Test Failures
+      - name: Test Failures
         uses: scacap/action-surefire-report@v1
         with:
           paths: test-results/test-results.xml
