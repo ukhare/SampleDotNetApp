@@ -39,32 +39,14 @@ jobs:
               file=$(echo "$line" | awk -F':' '{print $1}')
               line_num=$(echo "$line" | awk -F':' '{print $2}')
               message=$(echo "$line" | cut -d':' -f4-)
-              echo "::warning file=$file,line=$line_num,title=Publish::$message"
+              echo "::warning title=build_status,file=$file,line=$line_num::$message"
             elif echo "$line" | grep -q "error"; then
               file=$(echo "$line" | awk -F':' '{print $1}')
               line_num=$(echo "$line" | awk -F':' '{print $2}')
               message=$(echo "$line" | cut -d':' -f4-)
-              echo "::error file=$file,line=$line_num,title=Publish::$message"
+              echo "::error title=build_status,file=$file,line=$line_num::$message"
             fi
           done < publish.log || true
-
-      ### BUILD ANNOTATIONS ###
-      - name: Docker Build with Logs Capture
-        id: docker_build
-        run: |
-          docker build --progress=plain -t sample-dotnet-app . > build.log 2>&1 || true
-        continue-on-error: true
-
-      - name: Parse Build Logs for Annotations
-        id: build_status
-        run: |
-          while IFS= read -r line; do
-            if echo "$line" | grep -q "warning"; then
-              echo "::warning title=Build::$line"
-            elif echo "$line" | grep -q "error"; then
-              echo "::error title=Build::$line"
-            fi
-          done < build.log || true
 
       ### LINT ANNOTATIONS ###
       - name: Run Linter and Capture Logs
@@ -77,9 +59,9 @@ jobs:
         run: |
           while IFS= read -r line; do
             if echo "$line" | grep -q "warning"; then
-              echo "::warning title=Lint::$line"
+              echo "::warning title=lint::$line"
             elif echo "$line" | grep -q "error"; then
-              echo "::error title=Lint::$line"
+              echo "::error title=lint::$line"
             fi
           done < lint.log || true
 
