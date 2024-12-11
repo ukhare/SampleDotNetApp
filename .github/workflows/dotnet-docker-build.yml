@@ -39,6 +39,18 @@ jobs:
           # Publish errors
           grep "error" publish.log | awk '{print "::error title=Publish::" $0}' || true
 
+      - name: Publish Status2
+        id: build_status
+        run: |
+          # Publish warnings
+          grep "warning" publish.log | while read -r line; do
+            echo "::warning title=Publish::$line"
+          done || true
+
+          # Publish errors
+          grep "error" publish.log | while read -r line; do
+            echo "::error title=Publish::$line"
+          done || true
       ### LINT ANNOTATIONS ###
       - name: Run Linter and Capture Logs
         id: lint
