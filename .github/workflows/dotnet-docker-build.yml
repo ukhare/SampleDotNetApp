@@ -31,16 +31,8 @@ jobs:
           dotnet publish -c Release -o ./publish_output > publish.log 2>&1 || true
         continue-on-error: true
 
-#      - name: Publish Status
-#        id: build_status
-#        run: |
-#          # Publish warnings
-#          grep "warning" publish.log | awk '{print "::warning title=Publish::" $0}' || true
-#          # Publish errors
-#          grep "error" publish.log | awk '{print "::error title=Publish::" $0}' || true
-
-      - name: Publish Status2
-        id: build_status2
+      - name: Publish Status
+        id: build_status
         run: |
           # Publish warnings
           grep "warning" publish.log | while read -r line; do
@@ -62,9 +54,14 @@ jobs:
         id: lint_status
         run: |
           # Lint warnings
-          grep "warning" lint.log | awk '{print "::warning title=Lint::" $0}' || true
+          grep "warning" lint.log | while read -r line; do
+            echo "::warning title=Lint::$line"
+          done || true
+
           # Lint errors
-          grep "error" lint.log | awk '{print "::error title=Lint::" $0}' || true
+          grep "error" lint.log | while read -r line; do
+            echo "::error title=Lint::$line"
+          done || true
 
       ### TEST ANNOTATIONS ###
       - name: Run Tests and Save Results
