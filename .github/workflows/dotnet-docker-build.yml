@@ -21,6 +21,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y dotnet-sdk-7.0
 
+      ### DOTNET PUBLISH ANNOTATIONS ###
+      - name: DotNet Publish with Logs Capture
+        id: publish
+        run: |
+          echo "Starting publish..."
+          dotnet publish -c Release -o ./publish_output > publish.log 2>&1 || true
+        continue-on-error: true
+
+      - name: Parse Publish Logs for Annotations
+        run: |
+          # Publish warnings
+          grep "warning" publish.log | awk '{print "::warning title=Publish::" $0}' || true
+          # Publish errors
+          grep "error" publish.log | awk '{print "::error title=Publish::" $0}' || true
+
       ### BUILD ANNOTATIONS ###
       - name: Docker Build with Logs Capture
         id: build
