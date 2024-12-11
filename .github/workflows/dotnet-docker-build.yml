@@ -31,6 +31,7 @@ jobs:
 
       - name: Parse Publish Logs for Annotations
         run: |
+          id: build_status
           # Publish warnings
           grep "warning" publish.log | awk '{print "::warning title=Publish::" $0}' || true
           # Publish errors
