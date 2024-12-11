@@ -13,9 +13,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Install .NET SDK
       - name: Install .NET SDK
         run: |
           sudo apt-get update
@@ -29,7 +31,7 @@ jobs:
           dotnet publish -c Release -o ./publish_output > publish.log 2>&1 || true
         continue-on-error: true
 
-      - name: Parse Publish Logs for Annotations
+      - name: Publish Status
         id: build_status
         run: |
           # Publish warnings
@@ -37,52 +39,38 @@ jobs:
           # Publish errors
           grep "error" publish.log | awk '{print "::error title=Publish::" $0}' || true
 
- #      ### BUILD ANNOTATIONS ###
- #     - name: Docker Build with Logs Capture
- #       id: build
- #       run: |
- #         docker build --progress=plain -t sample-dotnet-app . > build.log 2>&1 || true
- #       continue-on-error: true
- #
- #     - name: Parse Build Logs for Annotations
- #       run: |
- #         # Build warnings
- #         grep "warning" build.log | awk '{print "::warning title=Build::" $0}' || true
- #         # Build errors
- #         grep "error" build.log | awk '{print "::error title=Build::" $0}' || true
- #
- #     ### LINT ANNOTATIONS ###
- #     - name: Run Linter and Capture Logs
- #       id: lint
- #       if: always()
- #       run: |
- #         dotnet format --check --verbosity detailed > lint.log 2>&1 || true
- #
- #     - name: Parse Lint Logs for Annotations
- #       run: |
- #         # Lint warnings
- #         grep "warning" lint.log | awk '{print "::warning title=Lint::" $0}' || true
- #         # Lint errors
- #         grep "error" lint.log | awk '{print "::error title=Lint::" $0}' || true
- #
- #     ### TEST ANNOTATIONS ###
- #     - name: Run Tests and Save Results
- #       id: test
- #       if: always()
- #       run: |
- #         mkdir -p test-results
- #         dotnet test --logger:"junit;LogFilePath=test-results/test-results.xml" || true
- #
- #     - name: Annotate Test Failures
- #       uses: scacap/action-surefire-report@v1
- #       with:
- #         paths: test-results/test-results.xml
- #         title: Test
- #
- #     - name: Verify Workflow Success
- #       run: |
- #         # Fail workflow if errors exist in any stage
- #         if grep "error" lint.log || grep "error" build.log || grep "Failed" test-results/test-results.xml; then
- #           echo "Errors detected. Please resolve them."
- #           exit 1
- #         fi
+      ### LINT ANNOTATIONS ###
+      - name: Run Linter and Capture Logs
+        id: lint
+        run: |
+          dotnet format --check --verbosity detailed > lint.log 2>&1 || true
+
+      - name: Lint Logs
+        id: lint_status
+        run: |
+          # Lint warnings
+          grep "warning" lint.log | awk '{print "::warning title=Lint::" $0}' || true
+          # Lint errors
+          grep "error" lint.log | awk '{print "::error title=Lint::" $0}' || true
+
+      ### TEST ANNOTATIONS ###
+      - name: Run Tests and Save Results
+        id: test
+        run: |
+          mkdir -p test-results
+          dotnet test --logger:"junit;LogFilePath=test-results/test-results.xml" || true
+
+      - name: Test Failures
+        uses: scacap/action-surefire-report@v1
+        with:
+          paths: test-results/test-results.xml
+          title: Test
+
+      ### VERIFY WORKFLOW SUCCESS ###
+      - name: Verify Workflow Success
+        run: |
+          # Fail workflow if errors exist in any stage
+          if grep "error" lint.log || grep "error" build.log || grep "Failed" test-results/test-results.xml; then
+            echo "Errors detected. Please resolve them."
+            exit 1
+          fi
