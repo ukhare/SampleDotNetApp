@@ -13,45 +13,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Install .NET SDK
       - name: Install .NET SDK
         run: |
           sudo apt-get update
           sudo apt-get install -y dotnet-sdk-7.0
 
-  ### DOTNET PUBLISH ANNOTATIONS ###
-  - name: DotNet Publish with Logs Capture
-    id: publish
-    run: |
-      echo "Starting publish..."
-      dotnet publish -c Release -o ./publish_output > publish.log 2>&1 || true
-    continue-on-error: true
-
-  - name: Parse Publish Logs for Annotations
-    id: build_status
-    run: |
-      # Parse Publish Warnings
-      while IFS= read -r line; do
-        if echo "$line" | grep -q "warning"; then
-          file=$(echo "$line" | awk -F':' '{print $1}')
-          line_num=$(echo "$line" | awk -F':' '{print $2}')
-          message=$(echo "$line" | cut -d':' -f4-)
-          echo "::warning file=$file,line=$line_num,title=Publish::$message"
-        fi
-      done < publish.log || true
-
-      # Parse Publish Errors
-      while IFS= read -r line; do
-        if echo "$line" | grep -q "error"; then
-          file=$(echo "$line" | awk -F':' '{print $1}')
-          line_num=$(echo "$line" | awk -F':' '{print $2}')
-          message=$(echo "$line" | cut -d':' -f4-)
-          echo "::error file=$file,line=$line_num,title=Publish::$message"
-        fi
-      done < publish.log || true
-    
       ### DOTNET PUBLISH ANNOTATIONS ###
       - name: DotNet Publish with Logs Capture
         id: publish
@@ -61,59 +32,74 @@ jobs:
         continue-on-error: true
 
       - name: Parse Publish Logs for Annotations
+        id: publish_status
+        run: |
+          while IFS= read -r line; do
+            if echo "$line" | grep -q "warning"; then
+              file=$(echo "$line" | awk -F':' '{print $1}')
+              line_num=$(echo "$line" | awk -F':' '{print $2}')
+              message=$(echo "$line" | cut -d':' -f4-)
+              echo "::warning file=$file,line=$line_num,title=Publish::$message"
+            elif echo "$line" | grep -q "error"; then
+              file=$(echo "$line" | awk -F':' '{print $1}')
+              line_num=$(echo "$line" | awk -F':' '{print $2}')
+              message=$(echo "$line" | cut -d':' -f4-)
+              echo "::error file=$file,line=$line_num,title=Publish::$message"
+            fi
+          done < publish.log || true
+
+      ### BUILD ANNOTATIONS ###
+      - name: Docker Build with Logs Capture
+        id: docker_build
+        run: |
+          docker build --progress=plain -t sample-dotnet-app . > build.log 2>&1 || true
+        continue-on-error: true
+
+      - name: Parse Build Logs for Annotations
         id: build_status
         run: |
-          # Publish warnings
-          grep "warning" publish.log | awk '{print "::warning title=Publish::" $0}' || true
-          # Publish errors
-          grep "error" publish.log | awk '{print "::error title=Publish::" $0}' || true
+          while IFS= read -r line; do
+            if echo "$line" | grep -q "warning"; then
+              echo "::warning title=Build::$line"
+            elif echo "$line" | grep -q "error"; then
+              echo "::error title=Build::$line"
+            fi
+          done < build.log || true
 
- #      ### BUILD ANNOTATIONS ###
- #     - name: Docker Build with Logs Capture
- #       id: build
- #       run: |
- #         docker build --progress=plain -t sample-dotnet-app . > build.log 2>&1 || true
- #       continue-on-error: true
- #
- #     - name: Parse Build Logs for Annotations
- #       run: |
- #         # Build warnings
- #         grep "warning" build.log | awk '{print "::warning title=Build::" $0}' || true
- #         # Build errors
- #         grep "error" build.log | awk '{print "::error title=Build::" $0}' || true
- #
- #     ### LINT ANNOTATIONS ###
- #     - name: Run Linter and Capture Logs
- #       id: lint
- #       if: always()
- #       run: |
- #         dotnet format --check --verbosity detailed > lint.log 2>&1 || true
- #
- #     - name: Parse Lint Logs for Annotations
- #       run: |
- #         # Lint warnings
- #         grep "warning" lint.log | awk '{print "::warning title=Lint::" $0}' || true
- #         # Lint errors
- #         grep "error" lint.log | awk '{print "::error title=Lint::" $0}' || true
- #
- #     ### TEST ANNOTATIONS ###
- #     - name: Run Tests and Save Results
- #       id: test
- #       if: always()
- #       run: |
- #         mkdir -p test-results
- #         dotnet test --logger:"junit;LogFilePath=test-results/test-results.xml" || true
- #
- #     - name: Annotate Test Failures
- #       uses: scacap/action-surefire-report@v1
- #       with:
- #         paths: test-results/test-results.xml
- #         title: Test
- #
- #     - name: Verify Workflow Success
- #       run: |
- #         # Fail workflow if errors exist in any stage
- #         if grep "error" lint.log || grep "error" build.log || grep "Failed" test-results/test-results.xml; then
- #           echo "Errors detected. Please resolve them."
- #           exit 1
- #         fi
+      ### LINT ANNOTATIONS ###
+      - name: Run Linter and Capture Logs
+        id: lint
+        run: |
+          dotnet format --check --verbosity detailed > lint.log 2>&1 || true
+
+      - name: Parse Lint Logs for Annotations
+        id: lint_status
+        run: |
+          while IFS= read -r line; do
+            if echo "$line" | grep -q "warning"; then
+              echo "::warning title=Lint::$line"
+            elif echo "$line" | grep -q "error"; then
+              echo "::error title=Lint::$line"
+            fi
+          done < lint.log || true
+
+      ### TEST ANNOTATIONS ###
+      - name: Run Tests and Save Results
+        id: test
+        run: |
+          mkdir -p test-results
+          dotnet test --logger:"junit;LogFilePath=test-results/test-results.xml" || true
+
+      - name: Annotate Test Failures
+        uses: scacap/action-surefire-report@v1
+        with:
+          paths: test-results/test-results.xml
+          title: Test
+
+      ### VERIFY WORKFLOW SUCCESS ###
+      - name: Verify Workflow Success
+        run: |
+          if grep "error" lint.log || grep "error" build.log || grep "Failed" test-results/test-results.xml; then
+            echo "Errors detected. Please resolve them."
+            exit 1
+          fi
