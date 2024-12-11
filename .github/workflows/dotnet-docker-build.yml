@@ -30,8 +30,8 @@ jobs:
         continue-on-error: true
 
       - name: Parse Publish Logs for Annotations
+        id: build_status
         run: |
-          id: build_status
           # Publish warnings
           grep "warning" publish.log | awk '{print "::warning title=Publish::" $0}' || true
           # Publish errors
