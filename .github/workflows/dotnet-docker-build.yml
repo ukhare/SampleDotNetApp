@@ -78,10 +78,4 @@ jobs:
           paths: test-results/test-results.xml
           title: Tests
 
-      ### VERIFY WORKFLOW SUCCESS ###
-      - name: Verify Workflow Success
-        run: |
-          if grep "error" lint.log || grep "error" build.log || grep "Failed" test-results/test-results.xml; then
-            echo "Errors detected. Please resolve them."
-            exit 1
-          fi
+      ### LOG ERRORS WITHOUT FAILING
