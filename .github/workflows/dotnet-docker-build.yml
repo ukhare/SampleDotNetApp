@@ -38,44 +38,4 @@ jobs:
             if echo "$line" | grep -q "warning"; then
               file=$(echo "$line" | awk -F':' '{print $1}')
               line_num=$(echo "$line" | awk -F':' '{print $2}')
-              message=$(echo "$line" | cut -d':' -f4-)
-              echo "::warning file=$file,line=$line_num,title=Build Status::$message"
-            elif echo "$line" | grep -q "error"; then
-              file=$(echo "$line" | awk -F':' '{print $1}')
-              line_num=$(echo "$line" | awk -F':' '{print $2}')
-              message=$(echo "$line" | cut -d':' -f4-)
-              echo "::error file=$file,line=$line_num,title=Build Status::$message"
-            fi
-          done < publish.log || true
-
-      ### LINT ANNOTATIONS ###
-      - name: Run Linter and Capture Logs
-        id: lint
-        run: |
-          dotnet format --check --verbosity detailed > lint.log 2>&1 || true
-
-      - name: Lint Status
-        id: lint_status
-        run: |
-          while IFS= read -r line; do
-            if echo "$line" | grep -q "warning"; then
-              echo "::warning title=Lint::$line"
-            elif echo "$line" | grep -q "error"; then
-              echo "::error title=Lint::$line"
-            fi
-          done < lint.log || true
-
-      ### TEST ANNOTATIONS ###
-      - name: Run Tests and Save Results
-        id: test
-        run: |
-          mkdir -p test-results
-          dotnet test --logger:"junit;LogFilePath=test-results/test-results.xml" || true
-
-      - name: Test Failures
-        uses: scacap/action-surefire-report@v1
-        with:
-          paths: test-results/test-results.xml
-          title: Tests
-
-      ### LOG ERRORS WITHOUT FAILING
+              message=$(echo "$line"
