@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SampleDotNetApp\SampleDotNetApp.csproj" />
+    <ProjectReference Include="..\..\SampleDotNetApp\SampleDotNetApp.csproj" />
   </ItemGroup>
 
 </Project>
