@@ -64,17 +64,38 @@ jobs:
           done || true
 
       ### TEST ANNOTATIONS ###
-      - name: Run Tests and Save Results
+#      - name: Run Tests and Save Results
+#        id: test
+#        run: |
+#          mkdir -p test-results
+#          dotnet test --logger:"junit;LogFilePath=test-results/test-results.xml" || true##
+
+#      - name: Test Failures
+#        uses: scacap/action-surefire-report@v1
+#        with:
+#          paths: test-results/test-results.xml
+#          title: Test
+
+      # Test the project and capture logs
+      - name: DotNet Test with Logs Capture
         id: test
         run: |
-          mkdir -p test-results
-          dotnet test --logger:"junit;LogFilePath=test-results/test-results.xml" || true
+          echo "Starting tests..."
+          dotnet test -c Release --verbosity normal "tests/SampleDotNetApp.Tests/SampleDotNetApp.Tests.csproj" > test.log 2>&1 || true
+        continue-on-error: true
 
-      - name: Test Failures
-        uses: scacap/action-surefire-report@v1
-        with:
-          paths: test-results/test-results.xml
-          title: Test
+      # Parse test logs for annotations
+      - name: Test Status
+        run: |
+          # Test warnings
+          grep "warning" test.log | while read -r line; do
+            echo "::warning title=Test::$line"
+          done || true
+
+          # Test errors
+          grep "error" test.log | while read -r line; do
+            echo "::error title=Test::$line"
+          done || true
 
       ### VERIFY WORKFLOW SUCCESS ###
       - name: Verify Workflow Success
