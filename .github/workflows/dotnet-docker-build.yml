@@ -57,7 +57,7 @@ jobs:
       - name: Run Linter and Capture Logs
         id: lint
         run: |
-          dotnet format SampleDotNetApp.csproj --check --verbosity detailed
+          dotnet format SampleDotNetApp.csproj --verify-no-changes --verbosity detailed
 
 #      - name: Lint Logs
 #        id: lint_status
