@@ -48,7 +48,7 @@ jobs:
       - name: Run Linter and Capture Logs
         id: lint
         run: |
-          dotnet format --check --verbosity detailed > lint.log 2>&1 || true
+          dotnet format --check --verbosity detailed
 
       - name: Lint Logs
         id: lint_status
