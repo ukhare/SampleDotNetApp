@@ -32,6 +32,12 @@ jobs:
           echo "$HOME/.dotnet" >> $GITHUB_PATH
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
+      - name: Get short branch name
+        run: echo "SHORT_BRANCH=$(echo ${GITHUB_REF#refs/heads/} | awk -F '/' '{print $NF}')" >> $GITHUB_ENV
+
+      - name: Print short branch name
+        run: echo "Short branch name is $SHORT_BRANCH"
+        
       ### DOTNET PUBLISH ANNOTATIONS ###
       - name: DotNet Publish with Logs Capture
         id: publish
